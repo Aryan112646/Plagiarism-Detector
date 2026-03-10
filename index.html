@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Plagiarism Detector Pro</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+    /* Importing a professional font */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
+
+    body { 
+        font-family: 'Inter', sans-serif; 
+        margin: 0;
+        padding: 40px 20px;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        min-height: 100vh;
+        color: #2d3436; 
+    }
+
+    .container { 
+        max-width: 900px; 
+        margin: auto; 
+        background: #ffffff; 
+        padding: 40px; 
+        border-radius: 20px; 
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08); 
+    }
+
+    h2 { 
+        font-weight: 600;
+        color: #0984e3; 
+        margin-top: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    p { color: #636e72; line-height: 1.6; }
+
+    /* Custom File Input Styling */
+    .file-group {
+        display: flex;
+        gap: 20px;
+        margin: 25px 0;
+    }
+
+    .file-input-wrapper {
+        flex: 1;
+        background: #f8f9fa;
+        border: 2px dashed #dfe6e9;
+        padding: 20px;
+        border-radius: 12px;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+
+    .file-input-wrapper:hover {
+        border-color: #74b9ff;
+        background: #f1f7ff;
+    }
+
+    input[type="file"] {
+        width: 100%;
+        cursor: pointer;
+    }
+
+    /* Buttons */
+    .btn-container {
+        display: flex;
+        gap: 15px;
+        margin-top: 20px;
+    }
+
+    button { 
+        font-family: 'Inter', sans-serif;
+        font-weight: 600;
+        border: none; 
+        padding: 12px 25px; 
+        border-radius: 8px; 
+        cursor: pointer; 
+        transition: transform 0.2s, box-shadow 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    #compareBtn { background: #0984e3; color: white; }
+    #compareBtn:hover { background: #0773c5; transform: translateY(-1px); }
+
+    #downloadBtn { background: #00b894; color: white; }
+    #downloadBtn:hover { background: #00a081; transform: translateY(-1px); }
+
+    /* Result Animation */
+    #result {
+        margin: 25px 0;
+        padding: 15px;
+        border-radius: 10px;
+        background: #eef2f7;
+        font-weight: 600;
+        color: #2d3436;
+        text-align: center;
+        border-left: 5px solid #0984e3;
+    }
+
+    /* Table Styling */
+    table { 
+        width: 100%; 
+        border-collapse: collapse; 
+        margin-top: 30px;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    th { 
+        background-color: #f8f9fa; 
+        color: #636e72;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 12px;
+        letter-spacing: 1px;
+        padding: 15px;
+    }
+
+    td { 
+        padding: 15px; 
+        border-bottom: 1px solid #f1f2f6; 
+        font-size: 14px;
+    }
+
+    tr:hover { background-color: #fcfdfe; }
+
+    .match-high { color: #d63031; font-weight: 700; background: #fff5f5; padding: 4px 8px; border-radius: 4px; }
+    .match-low { color: #00b894; font-weight: 700; background: #f0fff4; padding: 4px 8px; border-radius: 4px; }
+
+</style>
+</head>
+<body onload="loadHistory()">
+<div class="container">
+    <h2>📄 Plagiarism Detector</h2>
+    <p>Analyze document similarity with high precision using our AI-driven comparison engine.</p>
+    
+    <div class="file-group">
+        <div class="file-input-wrapper">
+            <strong>Document 1</strong><br>
+            <input type="file" id="file1">
+        </div>
+        <div class="file-input-wrapper">
+            <strong>Document 2</strong><br>
+            <input type="file" id="file2">
+        </div>
+    </div>
+
+    <div class="btn-container">
+        <button id="compareBtn" onclick="compare()">🔍 Compare Documents</button>
+        <button id="downloadBtn" style="display:none;" onclick="downloadPDF()">📥 Download Report</button>
+    </div>
+    
+    <div id="result" style="display:none;"></div>
+
+    <h2 style="margin-top: 50px;">🕒 Recent Comparisons</h2>
+    <table id="historyTable">
+        <thead>
+            <tr>
+                <th>Source File 1</th>
+                <th>Source File 2</th>
+                <th>Similarity</th>
+                <th>Scanned Date</th>
+            </tr>
+        </thead>
+        <tbody id="historyBody"></tbody>
+    </table>
+</div>
+
+   <script>
+    let currentResult = null;
+
+    async function compare() {
+        const f1 = document.getElementById('file1').files[0];
+        const f2 = document.getElementById('file2').files[0];
+        
+        if (!f1 || !f2) return alert("Please select two files!");
+
+        // Update UI to show "Processing..."
+        const resultDiv = document.getElementById('result');
+        resultDiv.style.display = "block";
+        resultDiv.innerHTML = "⏳ Analyzing documents... please wait.";
+
+        const formData = new FormData();
+        formData.append('file1', f1);
+        formData.append('file2', f2);
+
+        try {
+            const response = await fetch('http://127.0.0.1:5000/compare', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            currentResult = {
+                f1Name: f1.name,
+                f2Name: f2.name,
+                score: data.similarity,
+                date: new Date().toLocaleString()
+            };
+
+            // Update UI with professional styling
+            resultDiv.innerHTML = `Analysis Complete: <span style="font-size: 1.2em; color: #0984e3;">${data.similarity}% Similarity Detected</span>`;
+            document.getElementById('downloadBtn').style.display = "inline-flex";
+            
+            loadHistory(); 
+        } catch (error) {
+            resultDiv.innerHTML = "❌ Error: Could not connect to the backend server.";
+            console.error("Comparison error:", error);
+        }
+    }
+
+    async function loadHistory() {
+        try {
+            const response = await fetch('http://127.0.0.1:5000/history');
+            const data = await response.json();
+            const tableBody = document.getElementById('historyBody');
+            tableBody.innerHTML = ""; 
+
+            data.forEach(item => {
+                // Apply badges for similarity scores
+                const scoreClass = item.score > 50 ? 'match-high' : 'match-low';
+                
+                const row = `<tr>
+                    <td>${item.f1}</td>
+                    <td>${item.f2}</td>
+                    <td><span class="${scoreClass}">${item.score}%</span></td>
+                    <td>${item.time}</td>
+                </tr>`;
+                tableBody.innerHTML += row;
+            });
+        } catch (error) {
+            console.error("Error loading history:", error);
+        }
+    }
+
+    function downloadPDF() {
+        if (!currentResult) return;
+        
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        doc.setFontSize(22);
+        doc.setTextColor(44, 62, 80);
+        doc.text("Plagiarism Analysis Report", 20, 20);
+        
+        doc.setFontSize(12);
+        doc.setTextColor(0, 0, 0);
+        doc.text(`Generated on: ${currentResult.date}`, 20, 35);
+        doc.line(20, 40, 190, 40);
+        
+        doc.text(`Source File 1: ${currentResult.f1Name}`, 20, 55);
+        doc.text(`Source File 2: ${currentResult.f2Name}`, 20, 65);
+        
+        doc.setFontSize(18);
+        if(currentResult.score > 50) { 
+            doc.setTextColor(214, 48, 49); // Professional red
+        } else { 
+            doc.setTextColor(0, 184, 148); // Professional green
+        }
+        doc.text(`Final Similarity Score: ${currentResult.score}%`, 20, 85);
+        
+        doc.setFontSize(10);
+        doc.setTextColor(150);
+        doc.text("System: Python TF-IDF + Cosine Similarity Engine", 20, 110);
+        
+        doc.save(`Plagiarism_Report_${currentResult.f1Name}.pdf`);
+    }
+</script>
+</body>
+</html>
