@@ -1,6 +1,4 @@
-asgiref==3.9.1
-Django==5.2.5
-gunicorn==25.3.0
-packaging==26.0
-sqlparse==0.5.3
-tzdata==2025.2
+flask
+flask-cors
+scikit-learn
+gunicorn
