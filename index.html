@@ -170,8 +170,11 @@
     </table>
 </div>
 
-   <script>
+<script>
     let currentResult = null;
+    
+    // --- REPLACE THIS WITH YOUR RENDER URL ---
+    const BASE_URL = 'https://plagiarism-detector-aryan.onrender.com'; 
 
     async function compare() {
         const f1 = document.getElementById('file1').files[0];
@@ -179,7 +182,6 @@
         
         if (!f1 || !f2) return alert("Please select two files!");
 
-        // Update UI to show "Processing..."
         const resultDiv = document.getElementById('result');
         resultDiv.style.display = "block";
         resultDiv.innerHTML = "⏳ Analyzing documents... please wait.";
@@ -189,7 +191,7 @@
         formData.append('file2', f2);
 
         try {
-            const response = await fetch('http://127.0.0.1:5000/compare', {
+            const response = await fetch(`${BASE_URL}/compare`, {
                 method: 'POST',
                 body: formData
             });
@@ -203,7 +205,6 @@
                 date: new Date().toLocaleString()
             };
 
-            // Update UI with professional styling
             resultDiv.innerHTML = `Analysis Complete: <span style="font-size: 1.2em; color: #0984e3;">${data.similarity}% Similarity Detected</span>`;
             document.getElementById('downloadBtn').style.display = "inline-flex";
             
@@ -216,15 +217,13 @@
 
     async function loadHistory() {
         try {
-            const response = await fetch('http://127.0.0.1:5000/history');
+            const response = await fetch(`${BASE_URL}/history`);
             const data = await response.json();
             const tableBody = document.getElementById('historyBody');
             tableBody.innerHTML = ""; 
 
             data.forEach(item => {
-                // Apply badges for similarity scores
                 const scoreClass = item.score > 50 ? 'match-high' : 'match-low';
-                
                 const row = `<tr>
                     <td>${item.f1}</td>
                     <td>${item.f2}</td>
@@ -240,7 +239,6 @@
 
     function downloadPDF() {
         if (!currentResult) return;
-        
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
 
@@ -257,18 +255,15 @@
         doc.text(`Source File 2: ${currentResult.f2Name}`, 20, 65);
         
         doc.setFontSize(18);
-        if(currentResult.score > 50) { 
-            doc.setTextColor(214, 48, 49); // Professional red
-        } else { 
-            doc.setTextColor(0, 184, 148); // Professional green
-        }
+        if(currentResult.score > 50) { doc.setTextColor(214, 48, 49); } 
+        else { doc.setTextColor(0, 184, 148); }
         doc.text(`Final Similarity Score: ${currentResult.score}%`, 20, 85);
         
         doc.setFontSize(10);
         doc.setTextColor(150);
         doc.text("System: Python TF-IDF + Cosine Similarity Engine", 20, 110);
         
-        doc.save(`Plagiarism_Report_${currentResult.f1Name}.pdf`);
+        doc.save(`Plagiarism_Report.pdf`);
     }
 </script>
 </body>
